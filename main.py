@@ -32,6 +32,9 @@ def create_new_chat():
     st.session_state.chat_id = None
     st.rerun()
 
+def clear_all_chat():
+    st.session_state.db.clear_all_history()
+
 def main():
     st.set_page_config(
         page_title=Config.APP_NAME,
@@ -45,6 +48,7 @@ def main():
     # Sidebar
     with st.sidebar:
         st.button("New Chat", on_click=create_new_chat)
+        st.button("Clear Chat", on_click=clear_all_chat)
         
         # Model selection
         available_models = st.session_state.router.get_available_models()
@@ -75,57 +79,7 @@ def main():
         
         # Chat history
         st.subheader("Chat History")
-        
-        # Debug info container
-        with st.container(border=True):
-            st.subheader("Debug Information")
-            st.write(f"Database path: {Config.DB_PATH}")
-            debug_container = st.empty()
-        
-        # Clear history button with confirmation dialog
-        if st.button("🗑️ Clear All History", type="primary"):
-            st.warning("Are you sure you want to delete ALL chat history?")
-            st.write("This action cannot be undone.")
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Confirm Clear"):
-                    with st.spinner("Clearing history..."):
-                        try:
-                            # Debug: Show current chat count before clearing
-                            pre_count = len(st.session_state.db.get_all_chats())
-                            debug_container.write(f"Chats before clear: {pre_count}")
-                            st.write(f"Chats before clear: {pre_count}")
-                            st.session_state.debug_log.write(f"Chats before clear: {pre_count}\n")
-                            st.session_state.debug_log.flush()
-                            # Perform clear operation
-                            st.session_state.db.clear_all_history()
-                            
-                            # Debug: Show current chat count after clearing
-                            post_count = len(st.session_state.db.get_all_chats())
-                            debug_container.write(f"Chats after clear: {post_count}")
-                            st.write(f"Chats after clear: {post_count}")
-                            st.session_state.debug_log.write(f"Chats after clear: {post_count}\n")
-                            st.session_state.debug_log.flush()
-                            
-                            # Reset session state
-                            st.session_state.chat_id = None
-                            st.session_state.messages = []
-                            
-                            if post_count == 0:
-                                st.success("All chat history cleared successfully!")
-                            else:
-                                st.error(f"Clear operation failed - {post_count} chats remain")
-                            
-                            # Force immediate UI refresh
-                            st.experimental_rerun()
-                        except Exception as e:
-                            st.error(f"Error clearing history: {str(e)}")
-                            st.experimental_rerun()
-            with col2:
-                if st.button("Cancel Clear"):
-                    st.info("Clear operation cancelled")
-                    st.rerun()
-        
+                
         # Display chat history after clear operation
         try:
             chats = st.session_state.db.get_all_chats()
