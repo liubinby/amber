@@ -50,6 +50,14 @@ def main():
         st.button("New Chat", on_click=create_new_chat)
         st.button("Clear Chat", on_click=clear_all_chat)
         
+        # File upload
+        uploaded_file = st.file_uploader(
+            "Load File",
+            type=None,
+            key="file_upload",
+            help="Select a file to analyze"
+        )
+        
         # Model selection
         available_models = st.session_state.router.get_available_models()
         
@@ -105,9 +113,18 @@ def main():
 
     if prompt := st.chat_input("Type your message here..."):
         # User message
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Add file content to message if uploaded
+        full_content = prompt
+        if st.session_state.get("file_upload"):
+            file = st.session_state.file_upload
+            full_content += f"\n\n[Attached file: {file.name}]\n"
+            full_content += file.getvalue().decode(errors="ignore")
+            
+        st.session_state.messages.append({"role": "user", "content": full_content})
         with st.chat_message("user"):
             st.write(prompt)
+            if st.session_state.get("file_upload"):
+                st.write(f"📎 Attached file: {st.session_state.file_upload.name}")
 
         # Create new chat if needed
         if not st.session_state.chat_id:

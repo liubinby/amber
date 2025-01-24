@@ -31,6 +31,19 @@ class Database:
                     role TEXT NOT NULL,
                     content TEXT NOT NULL,
                     timestamp TIMESTAMP NOT NULL,
+                    file_id INTEGER,
+                    FOREIGN KEY (chat_id) REFERENCES chats (id),
+                    FOREIGN KEY (file_id) REFERENCES attachments (id)
+                )
+            """)
+            
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    chat_id INTEGER NOT NULL,
+                    filename TEXT NOT NULL,
+                    content BLOB NOT NULL,
+                    uploaded_at TIMESTAMP NOT NULL,
                     FOREIGN KEY (chat_id) REFERENCES chats (id)
                 )
             """)
@@ -58,7 +71,7 @@ class Database:
             )
             return cursor.lastrowid
     
-    def save_message(self, chat_id: int, role: str, content: str) -> None:
+    def save_message(self, chat_id: int, role: str, content: str, file_id: int = None) -> None:
         """
         Save a message to the database and prune old messages if necessary.
         
@@ -130,6 +143,15 @@ class Database:
             return [dict(row) for row in cursor.fetchall()]
     
     def get_chat_messages(self, chat_id: int) -> List[Dict]:
+        """
+        Get all messages for a specific chat with attachment info.
+        
+        Args:
+            chat_id (int): ID of the chat
+            
+        Returns:
+            List[Dict]: List of message dictionaries with attachment info
+        """
         """
         Get all messages for a specific chat.
         
@@ -205,6 +227,30 @@ class Database:
                 (new_title, datetime.now().isoformat(), chat_id)
             )
     
+    def save_attachment(self, chat_id: int, filename: str, content: bytes) -> int:
+        """
+        Save an uploaded file attachment
+        
+        Args:
+            chat_id (int): ID of the chat
+            filename (str): Original filename
+            content (bytes): File content
+            
+        Returns:
+            int: Attachment ID
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            now = datetime.now().isoformat()
+            cursor.execute(
+                """
+                INSERT INTO attachments (chat_id, filename, content, uploaded_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (chat_id, filename, content, now)
+            )
+            return cursor.lastrowid
+
     def clear_all_history(self) -> None:
         """Delete all chat history from the database"""
         try:
