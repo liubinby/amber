@@ -30,7 +30,7 @@ def init_session_state():
 def create_new_chat():
     st.session_state.messages = []
     st.session_state.chat_id = None
-    st.rerun()
+    st.session_state.needs_rerun = True
 
 def clear_all_chat():
     st.session_state.db.clear_all_history()
@@ -98,9 +98,13 @@ def main():
                     if st.button(f"{chat['title']} - {chat['created_at']}", key=chat['id']):
                         st.session_state.chat_id = chat['id']
                         st.session_state.messages = st.session_state.db.get_chat_messages(chat['id'])
-                        st.rerun()
+                        st.session_state.needs_rerun = True
         except Exception as e:
             st.error(f"Error loading chat history: {str(e)}")
+            
+    if st.session_state.get('needs_rerun'):
+        st.session_state.needs_rerun = False
+        st.rerun()
 
     # Chat interface
     if not model_provider or not model_name:
